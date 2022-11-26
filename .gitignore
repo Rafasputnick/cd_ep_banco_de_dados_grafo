@@ -6,6 +6,7 @@
 
 compressed_datasets/
 raw_datasets/
+final.feather
 
 ### Python ###
 # Byte-compiled / optimized / DLL files

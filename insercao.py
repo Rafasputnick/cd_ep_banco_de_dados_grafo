@@ -37,7 +37,8 @@ class CriarDB:
 
     def cria_relacao_escreveu(self, idFilme, escritor):
         with self.driver.session() as session:
-            session.execute_write(self._cria_relacao_escreveu, idFilme, escritor)
+            session.execute_write(
+                self._cria_relacao_escreveu, idFilme, escritor)
 
     def cria_relacao_atuou(self, idFilme, idAtor):
         with self.driver.session() as session:
@@ -119,6 +120,7 @@ class CriarDB:
                         CREATE (f)-[r:ESTA_EM]->(g)
                         RETURN type(r)
                     """)
+
 
 def criar_database():
     db = CriarDB(url, "neo4j", senha)

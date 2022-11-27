@@ -1,7 +1,3 @@
-# https://towardsdatascience.com/create-a-graph-database-in-neo4j-using-python-4172d40f89c4
-# Exemplos
-# https://gist.github.com/wjgilmore/8ba5f31ef1435dc04c52
-
 import os
 from neo4j import GraphDatabase
 from movie import Movie
@@ -47,10 +43,11 @@ conn = Neo4jConnection(uri=os.environ['NEO4J_URL'],
 
 
 def generic_query(query):
-  res = []
-  for line in conn.query(query):
-      res.append(dict(line))
-  return res
+    res = []
+    for line in conn.query(query):
+        res.append(dict(line))
+    return res
+
 
 def updateRelatedPoints(query, linked_movies: dict, points: float):
     for line in conn.query(query):
@@ -62,8 +59,9 @@ def updateRelatedPoints(query, linked_movies: dict, points: float):
 
         linked_movies[id].multiplyPoints(points)
 
+
 def get_random_movie():
-  return generic_query(f"""
+    return generic_query(f"""
                   MATCH (f: Filme)
                   WITH f.id as id, f.titulo as titulo, rand() as r
                   ORDER BY r LIMIT 1
@@ -95,7 +93,6 @@ def search_top_related_movies(movieId: str, how_much_movies: int):
     RETURN fRelacionado.id as id, fRelacionado.titulo as titulo
     """, linked_movies, 1.4)
 
-
     # Filmes com o(s) mesmo(s) atore(s)/atriz(es)
     updateRelatedPoints(f"""
     MATCH (f:Filme)<-[:ATUOU]-(p:Pessoa)-[:ATUOU]->(fRelacionado:Filme)
@@ -103,20 +100,20 @@ def search_top_related_movies(movieId: str, how_much_movies: int):
     RETURN fRelacionado.id as id, fRelacionado.titulo as titulo
     """, linked_movies, 1.6)
 
-    top_related_movies = sorted(list(linked_movies.values()), key=lambda value: value.related_points, reverse=True)
+    top_related_movies = sorted(list(linked_movies.values(
+    )), key=lambda value: value.related_points, reverse=True)
     return top_related_movies[:how_much_movies]
 
 
-
 def search_for_top_5():
-  filme = get_random_movie()
-  titulo_filme = filme[0]['titulo']
-  print(f'O filme sorteado foi: {titulo_filme}')
+    filme = get_random_movie()
+    titulo_filme = filme[0]['titulo']
+    print(f'O filme sorteado foi: {titulo_filme}')
 
-  # Bom exemplo id = 'tt0001386'
-  id_filme = filme[0]['id']
-  top_movies = search_top_related_movies(id_filme, 5)
+    # Bom exemplo id = 'tt0001386'
+    id_filme = filme[0]['id']
+    top_movies = search_top_related_movies(id_filme, 5)
 
-  print("Filmes recomendados:")
-  for i, movie in enumerate(top_movies):
-    print(f'{i + 1}º - {movie.title}')
+    print("Filmes recomendados:")
+    for i, movie in enumerate(top_movies):
+        print(f'{i + 1}º - {movie.title}')

@@ -46,15 +46,29 @@ conn = Neo4jConnection(uri=os.environ['NEO4J_URL'],
                        pwd=os.environ['NEO4J_PW'])
 
 
+def generic_query(query):
+  res = []
+  for line in conn.query(query):
+      res.append(dict(line))
+  return res
+
 def updateRelatedPoints(query, linked_movies: dict, points: float):
     for line in conn.query(query):
         response = dict(line)
-        mId = response['rMovieId']
-        movie = Movie(response['rMovieTitle'], response['rMovieUrl'])
-        if linked_movies.get(mId) == None:
-            linked_movies[mId] = movie
+        id = response['id']
+        movie_info = Movie(response['titulo'])
+        if linked_movies.get(id) == None:
+            linked_movies[id] = movie_info
 
-        linked_movies[mId].multiplyPoints(points)
+        linked_movies[id].multiplyPoints(points)
+
+def get_random_movie():
+  return generic_query(f"""
+                  MATCH (f: Filme)
+                  WITH f.id as id, f.titulo as titulo, rand() as r
+                  ORDER BY r LIMIT 1
+                  RETURN id, titulo
+                """)
 
 
 def search_top_related_movies(movieId: str, how_much_movies: int):
@@ -62,31 +76,47 @@ def search_top_related_movies(movieId: str, how_much_movies: int):
 
     # Filmes com o(s) mesmo(s) genero(s)
     updateRelatedPoints(f"""
-    MATCH (curMovie:Movie)-[:IN_GENRE]->(g:Genre)<-[:IN_GENRE]-(relatedMovie:Movie)
-    WHERE curMovie.movieId = '{movieId}'
-    RETURN relatedMovie.movieId as rMovieId, relatedMovie.title as rMovieTitle, relatedMovie.url as rMovieUrl
+    MATCH (f:Filme)-[:ESTA_EM]->(g:Genero)<-[:ESTA_EM]-(fRelacionado:Filme)
+    WHERE f.id = '{movieId}'
+    RETURN fRelacionado.id as id, fRelacionado.titulo as titulo
     """, linked_movies, 1.2)
 
     # Filmes com o mesmo diretor
     updateRelatedPoints(f"""
-    MATCH (curMovie:Movie)<-[:DIRECTED]-(d:Director)-[:DIRECTED]->(relatedMovie:Movie)
-    WHERE curMovie.movieId = '{movieId}'
-    RETURN relatedMovie.movieId as rMovieId, relatedMovie.title as rMovieTitle, relatedMovie.url as rMovieUrl
+    MATCH (f:Filme)<-[:DIRIGIU]-(p:Pessoa)-[:DIRIGIU]->(fRelacionado:Filme)
+    WHERE f.id = '{movieId}'
+    RETURN fRelacionado.id as id, fRelacionado.titulo as titulo
+    """, linked_movies, 1.5)
+
+    # Filmes com o mesmo escritor
+    updateRelatedPoints(f"""
+    MATCH (f:Filme)<-[:ESCREVEU]-(p:Pessoa)-[:ESCREVEU]->(fRelacionado:Filme)
+    WHERE f.id = '{movieId}'
+    RETURN fRelacionado.id as id, fRelacionado.titulo as titulo
     """, linked_movies, 1.4)
+
 
     # Filmes com o(s) mesmo(s) atore(s)/atriz(es)
     updateRelatedPoints(f"""
-    MATCH (curMovie:Movie)<-[:ACTED_IN]-(a:Actor)-[:ACTED_IN]->(relatedMovie:Movie)
-    WHERE curMovie.movieId = '{movieId}'
-    RETURN relatedMovie.movieId as rMovieId, relatedMovie.title as rMovieTitle, relatedMovie.url as rMovieUrl
+    MATCH (f:Filme)<-[:ATUOU]-(p:Pessoa)-[:ATUOU]->(fRelacionado:Filme)
+    WHERE f.id = '{movieId}'
+    RETURN fRelacionado.id as id, fRelacionado.titulo as titulo
     """, linked_movies, 1.6)
 
     top_related_movies = sorted(list(linked_movies.values()), key=lambda value: value.related_points, reverse=True)
     return top_related_movies[:how_much_movies]
 
 
-top_movies = search_top_related_movies('614', 5)
 
-print("Filmes recomendados:")
-for i, movie in enumerate(top_movies):
-  print(f'{i + 1}º - {movie.title}')
+def search_for_top_5():
+  filme = get_random_movie()
+  titulo_filme = filme[0]['titulo']
+  print(f'O filme sorteado foi: {titulo_filme}')
+
+  # Bom exemplo id = 'tt0001386'
+  id_filme = filme[0]['id']
+  top_movies = search_top_related_movies(id_filme, 5)
+
+  print("Filmes recomendados:")
+  for i, movie in enumerate(top_movies):
+    print(f'{i + 1}º - {movie.title}')

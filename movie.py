@@ -1,7 +1,6 @@
 class Movie:
-    def __init__(self, title: str, url: str) -> None:
+    def __init__(self, title: str) -> None:
         self.title = title
-        self.url = url
         self.related_points = 1
 
     def multiplyPoints(self, multiplier: float):
